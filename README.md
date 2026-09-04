@@ -9,15 +9,15 @@ The emphasis of this repository is *verification and validation*: showing that
 the numerics do what the theory says they should.
 
 ```bash
-git clone https://github.com/<your-username>/cfd-heat-transfer.git
+git clone https://github.com/amiin10/cfd-heat-transfer.git
 cd cfd-heat-transfer
 pip install -r requirements.txt
 
-python src/blasius_boundary_layer.py     # ~1 s
-python src/conduction_2d_steady.py       # ~3 s
-python src/conduction_1d_transient.py    # ~5 s
-python src/heat_exchanger.py             # ~1 s
-python src/lid_driven_cavity.py          # ~5 min (129 x 129, Re = 100 and 400)
+python 1. Blasius/Code/blasius_boundary_layer.py     # ~1 s
+python 2. Lid-driven cavity/Codes/lid_driven_cavity.py       # ~3 s
+python 3. 2D steady conduction/Codes/conduction_2d_steady.py    # ~5 s
+python 4. Transient conduction/Codes/conduction_1d_transient.py             # ~1 s
+python 5. Heat exchanger/Codes/heat_exchanger.py          # ~5 min (129 x 129, Re = 100 and 400)
 
 pytest -v                    # full suite, 35 tests
 pytest -v -m "not slow"      # skip the CFD runs
@@ -47,7 +47,8 @@ The Reynolds analogy is recovered exactly: at `Pr = 1`, `θ'(0) = f''(0)`. Acros
 `Nuₓ = 0.332 Reₓ^½ Pr^⅓` correlation — the residual gap is the known error of the
 `Pr^⅓` approximation itself, not of the solver.
 
-![Blasius](1. Blasius/Figs/blasius.png)
+<img src="1. Blasius/Figs/blasius.png" alt="Blasius" width="90%"/>
+
 
 ---
 
@@ -89,7 +90,7 @@ with Reynolds number, as expected.
 > `GHIA_ERRATA` and excluded from the error norms. Every one of the remaining
 > 16 stations agrees to within 0.005.
 
-![Cavity](figures/lid_driven_cavity.png)
+<img src="2. Lid-driven cavity/Figs/lid_driven_cavity.png" alt="Cavity" width="90%"/>
 
 ---
 
@@ -121,7 +122,8 @@ discrepancy is entirely localised at the two **corner singularities**, where the
 boundary data is discontinuous and no finite-difference scheme can retain
 second-order accuracy.
 
-![Conduction 2D](figures/conduction_2d.png)
+<img src="3. 2D steady conduction/Figs/conduction_2d.png" alt="Conduction 2D" width="90%"/>
+
 
 ---
 
@@ -153,7 +155,8 @@ Backward Euler is exactly first order, Crank–Nicolson exactly second order.
 limit `Fo_mesh = 0.5` and diverges at 0.6, producing the classic sawtooth
 oscillation. Both implicit schemes remain bounded at time steps 250× larger.
 
-![Transient](figures/conduction_1d_transient.png)
+<img src="4. Transient conduction/Figs/conduction_1d_transient.png" alt="Transient" width="90%"/>
+
 
 ---
 
@@ -187,7 +190,8 @@ The solver also rejects thermodynamically impossible specifications: requesting 
 duty above `C_min (T_h,i − T_c,i)` raises an explicit error rather than returning
 a nonsense area.
 
-![Heat exchanger](figures/heat_exchanger.png)
+<img src="5. Heat exchanger/Figs/heat_exchanger.png" alt="Heat exchanger" width="90%"/>
+
 
 ---
 
