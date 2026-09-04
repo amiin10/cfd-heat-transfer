@@ -47,7 +47,7 @@ The Reynolds analogy is recovered exactly: at `Pr = 1`, `θ'(0) = f''(0)`. Acros
 `Nuₓ = 0.332 Reₓ^½ Pr^⅓` correlation — the residual gap is the known error of the
 `Pr^⅓` approximation itself, not of the solver.
 
-![Blasius](figures/blasius.png)
+![Blasius](1. Blasius/Figs/blasius.png)
 
 ---
 
