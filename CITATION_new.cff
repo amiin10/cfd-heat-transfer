@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "cfd-heat-transfer: Verified Finite-Difference Solvers for Classical Fluid Mechanics and Heat Transfer Problems"
+type: software
+authors:
+  - family-names: "Hosseini"
+    given-names: "Amin"
+    email: "amin.hosseini1@aut.ac.ir"
+    affiliation: "Amirkabir University of Technology (Tehran Polytechnic)"
+repository-code: "https://github.com/amiin10/cfd-heat-transfer"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22548111"
+    description: "Archived snapshot of this software on Zenodo"
+abstract: >-
+  A collection of finite-difference solvers for classical fluid mechanics and
+  heat transfer problems, each verified against an independent reference: a
+  closed-form analytical solution, a published benchmark (Ghia, Ghia & Shin,
+  1982), or a theoretical order of accuracy. Includes the Blasius laminar
+  boundary layer, the lid-driven cavity (incompressible Navier-Stokes),
+  two-dimensional steady conduction, one-dimensional transient conduction,
+  and heat-exchanger sizing via the effectiveness-NTU method, backed by a
+  35-test automated verification suite.
+keywords:
+  - computational fluid dynamics
+  - heat transfer
+  - finite difference methods
+  - verification and validation
+  - boundary layer theory
+  - conduction
+  - Navier-Stokes
+license: MIT
+version: 1.0.0
+date-released: "2026-09-06"
+doi: "10.5281/zenodo.22548111"
