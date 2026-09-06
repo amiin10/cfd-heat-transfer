@@ -1,7 +1,5 @@
 """
 Blasius laminar boundary layer over a flat plate.
-==================================================
-
 Solves the Blasius similarity equation
 
 Author: Seyed Mohammad Amin Hosseini
