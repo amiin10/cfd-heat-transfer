@@ -24,7 +24,6 @@ def eigenvalues(Bi: float, n_roots: int = 60) -> np.ndarray:
 
 def exact_theta(xi: np.ndarray, Fo: float, Bi: float,
                 zeta: np.ndarray | None = None) -> np.ndarray:
-    """Dimensionless temperature; xi = x/L, Fo = alpha t / L^2."""
     if zeta is None:
         zeta = eigenvalues(Bi)
     C = 4.0 * np.sin(zeta) / (2.0 * zeta + np.sin(2.0 * zeta))
@@ -38,10 +37,8 @@ def _operator(nx: int, dx: float, Bi_dx: float):
     lower = np.ones(nx - 1)
     upper = np.ones(nx - 1)
 
-    # Node 0: symmetry -> ghost node T_{-1} = T_1  =>  2(T_1 - T_0)
     upper[0] = 2.0
 
-    # Node nx-1: convective surface, ghost T_{n} = T_{n-2} - 2 Bi_dx T_{n-1}
     main[-1] = -2.0 * (1.0 + Bi_dx)
     lower[-1] = 2.0
 
