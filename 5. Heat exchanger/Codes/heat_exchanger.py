@@ -1,29 +1,7 @@
 """
 Heat-exchanger thermal design: effectiveness-NTU, LMTD and pressure drop.
-========================================================================
 
-A practical design-oriented module covering the sizing of a
-counter-flow double-pipe heat exchanger:
-
-  * Colebrook-White friction factor solved implicitly with Newton's method
-    (verified against the explicit Haaland approximation and Moody chart).
-  * Internal forced-convection Nusselt correlations: Dittus-Boelter and
-    Gnielinski.
-  * Effectiveness-NTU relations for counter-flow, parallel-flow and
-    cross-flow arrangements.
-  * The overall U from series thermal resistances (convection + wall
-    conduction + fouling).
-  * A sizing solve: find the tube length that meets a required duty, via
-    Brent's method on the NTU relation.
-
-Self-verification
------------------
-The epsilon-NTU and LMTD methods are mathematically equivalent for a given
-exchanger.  The script computes the duty both ways and confirms they agree
-to round-off, which is a strong internal consistency check on the
-implementation.
-
-Author: <your name>
+Author: Seyed Mohammad Amin Hosseini
 """
 
 from __future__ import annotations
@@ -31,20 +9,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.optimize import brentq, newton
 
-
-# --------------------------------------------------------------------------
-# Friction factor and internal-flow correlations
-# --------------------------------------------------------------------------
-
 def friction_factor(Re: float, eps_D: float = 0.0) -> float:
-    """
-    Darcy friction factor.
-
-    Laminar (Re < 2300):  f = 64/Re  (exact, Hagen-Poiseuille)
-    Turbulent:            Colebrook-White, solved by Newton iteration on
-                          x = 1/sqrt(f):
-                              x = -2 log10(eps_D/3.7 + 2.51 x / Re)
-    """
     if Re < 2300.0:
         return 64.0 / Re
 
@@ -57,15 +22,13 @@ def friction_factor(Re: float, eps_D: float = 0.0) -> float:
 
 
 def haaland(Re: float, eps_D: float = 0.0) -> float:
-    """Explicit Haaland approximation, used to cross-check Colebrook."""
     return (-1.8 * np.log10((eps_D / 3.7) ** 1.11 + 6.9 / Re)) ** -2
 
 
 def nusselt(Re: float, Pr: float, eps_D: float = 0.0,
             correlation: str = "gnielinski", heating: bool = True) -> float:
-    """Fully developed internal flow Nusselt number."""
     if Re < 2300.0:
-        return 3.66                       # constant wall temperature, laminar
+        return 3.66                       
     if correlation == "dittus-boelter":
         n = 0.4 if heating else 0.3
         return 0.023 * Re ** 0.8 * Pr ** n
@@ -76,13 +39,7 @@ def nusselt(Re: float, Pr: float, eps_D: float = 0.0,
         return num / den
     raise ValueError(correlation)
 
-
-# --------------------------------------------------------------------------
-# Effectiveness-NTU relations
-# --------------------------------------------------------------------------
-
 def effectiveness(NTU: float, Cr: float, arrangement: str = "counterflow") -> float:
-    """epsilon(NTU, Cr) for common arrangements (Incropera Table 11.3)."""
     if arrangement == "counterflow":
         if abs(Cr - 1.0) < 1e-10:
             return NTU / (1.0 + NTU)
@@ -102,7 +59,6 @@ def effectiveness(NTU: float, Cr: float, arrangement: str = "counterflow") -> fl
 
 def ntu_from_effectiveness(eps: float, Cr: float,
                            arrangement: str = "counterflow") -> float:
-    """Invert epsilon(NTU) numerically - works for every arrangement."""
     eps_max = effectiveness(1e4, Cr, arrangement)
     if eps >= eps_max:
         raise ValueError(f"effectiveness {eps:.4f} unreachable "
@@ -112,17 +68,12 @@ def ntu_from_effectiveness(eps: float, Cr: float,
 
 
 def lmtd_counterflow(Th_i, Th_o, Tc_i, Tc_o) -> float:
-    """Log-mean temperature difference for a counter-flow exchanger."""
     d1 = Th_i - Tc_o
     d2 = Th_o - Tc_i
     if abs(d1 - d2) < 1e-12:
         return d1
     return (d1 - d2) / np.log(d1 / d2)
 
-
-# --------------------------------------------------------------------------
-# Driver
-# --------------------------------------------------------------------------
 
 def main() -> None:
     import os
@@ -143,17 +94,15 @@ def main() -> None:
         print(f"{Re:>10.0e}{e:>10.4f}{fc:>13.5f}{fh:>12.5f}{moody:>10.4f}"
               f"{100*abs(fc-moody)/moody:>9.2f}")
 
-    # ---------------- design case ----------------
     print("\n" + "=" * 72)
     print("COUNTER-FLOW DOUBLE-PIPE EXCHANGER - sizing")
     print("=" * 72)
 
-    # Hot: oil.  Cold: water in the inner tube.
-    m_h, cp_h, Th_i = 0.20, 2130.0, 100.0      # kg/s, J/kg-K, degC
+    m_h, cp_h, Th_i = 0.20, 2130.0, 100.0      
     m_c, cp_c, Tc_i = 0.10, 4178.0, 30.0
-    D_i, t_w, k_w = 0.025, 0.002, 16.0          # m, m, W/m-K (steel)
-    U_guess = 500.0                             # W/m^2-K, overall coefficient
-    Q_required = 20_000.0                       # W  (must be < Q_max)
+    D_i, t_w, k_w = 0.025, 0.002, 16.0          
+    U_guess = 500.0                             
+    Q_required = 20_000.0                       
 
     C_h, C_c = m_h * cp_h, m_c * cp_c
     C_min, C_max = min(C_h, C_c), max(C_h, C_c)
@@ -171,7 +120,6 @@ def main() -> None:
     print(f"Area required       = {A_req:.4f} m^2")
     print(f"Tube length required= {L_req:.3f} m")
 
-    # ---- verification: epsilon-NTU duty vs LMTD duty ----
     eps = effectiveness(NTU_req, Cr, "counterflow")
     Q_ntu = eps * Q_max
     Th_o = Th_i - Q_ntu / C_h
@@ -186,11 +134,9 @@ def main() -> None:
     print(f"  Q from LMTD         : {Q_lmtd:.4f} W")
     print(f"  relative difference : {abs(Q_ntu-Q_lmtd)/Q_ntu:.3e}  (should be ~0)")
 
-    # ---- energy balance check ----
     imbalance = abs(C_h * (Th_i - Th_o) - C_c * (Tc_o - Tc_i)) / Q_ntu
     print(f"  energy balance error: {imbalance:.3e}")
 
-    # ---- U from resistances, using the computed h ----
     print("\n" + "-" * 72)
     print("Overall U from series resistances (water side, inner tube)")
     rho, mu, k_f, Pr = 995.0, 7.7e-4, 0.62, 5.2          # water at ~305 K
@@ -204,7 +150,6 @@ def main() -> None:
     dP = f * (L_req / D_i) * 0.5 * rho * V ** 2
     print(f"  f = {f:.5f},  pressure drop over {L_req:.2f} m = {dP:.1f} Pa")
 
-    # ---------------- figure ----------------
     figdir = os.path.join(os.path.dirname(__file__), "..", "figures")
     os.makedirs(figdir, exist_ok=True)
 
@@ -226,7 +171,6 @@ def main() -> None:
     ax[1].set_title(r"Arrangements at $C_r$ = 0.5")
     ax[1].legend(fontsize=7); ax[1].grid(alpha=0.3); ax[1].set_ylim(0, 1)
 
-    # Moody diagram
     Re_range = np.logspace(np.log10(2300), 8, 300)
     for e in (0.0, 1e-5, 1e-4, 1e-3, 5e-3, 1e-2, 5e-2):
         ax[2].loglog(Re_range, [friction_factor(r, e) for r in Re_range],
