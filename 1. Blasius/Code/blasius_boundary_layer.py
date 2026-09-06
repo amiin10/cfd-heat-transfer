@@ -4,26 +4,6 @@ Blasius laminar boundary layer over a flat plate.
 
 Solves the Blasius similarity equation
 
-    2 f''' + f f'' = 0,   f(0) = f'(0) = 0,  f'(inf) = 1
-
-as a two-point boundary value problem using a classical RK4 integrator
-combined with a Newton shooting method on the unknown wall shear f''(0).
-
-The thermal boundary layer is then obtained from the energy similarity
-equation for a constant-wall-temperature plate
-
-    theta'' + (Pr/2) f theta' = 0,  theta(0) = 0, theta(inf) = 1
-
-which gives the local Nusselt number.  For Pr = 0.7-10 the solution should
-recover the textbook correlation Nu_x = 0.332 Re_x^(1/2) Pr^(1/3).
-
-Reference values (Schlichting, "Boundary-Layer Theory", 9th ed.):
-    f''(0)              = 0.332057336
-    delta_99 * sqrt(Rex)/x = 4.910
-    delta* * sqrt(Rex)/x   = 1.7208
-    theta_mom*sqrt(Rex)/x  = 0.6641
-    cf * sqrt(Rex)         = 0.664
-
 Author: Seyed Mohammad Amin Hosseini
 """
 
@@ -31,19 +11,13 @@ from __future__ import annotations
 
 import numpy as np
 
-# --------------------------------------------------------------------------
-# Core ODE machinery
-# --------------------------------------------------------------------------
-
 
 def _blasius_rhs(_eta: float, y: np.ndarray) -> np.ndarray:
-    """State vector y = [f, f', f'']  ->  dy/deta."""
     f, fp, fpp = y
     return np.array([fp, fpp, -0.5 * f * fpp])
 
 
 def _rk4(rhs, eta: np.ndarray, y0: np.ndarray) -> np.ndarray:
-    """Fixed-step classical Runge-Kutta 4 integration over the grid `eta`."""
     y = np.empty((eta.size, y0.size))
     y[0] = y0
     for i in range(eta.size - 1):
@@ -58,18 +32,7 @@ def _rk4(rhs, eta: np.ndarray, y0: np.ndarray) -> np.ndarray:
 
 def solve_blasius(eta_max: float = 10.0, n: int = 2001,
                   tol: float = 1e-12, max_iter: int = 50):
-    """
-    Shoot on s = f''(0) so that f'(eta_max) = 1.
 
-    Newton's method is used with a numerically differentiated residual,
-    which converges quadratically in ~5 iterations from s = 0.3.
-
-    Returns
-    -------
-    eta : ndarray            similarity coordinate
-    y   : ndarray (n, 3)     columns [f, f', f'']
-    s   : float              converged wall shear f''(0)
-    """
     eta = np.linspace(0.0, eta_max, n)
 
     def residual(s: float) -> float:
@@ -92,20 +55,7 @@ def solve_blasius(eta_max: float = 10.0, n: int = 2001,
 
 
 def solve_thermal(eta: np.ndarray, f: np.ndarray, Pr: float):
-    """
-    Energy equation theta'' + (Pr/2) f theta' = 0, theta(0)=0, theta(inf)=1.
 
-    Because the equation is linear and first-order in theta', it has the
-    closed-form quadrature solution
-
-        theta(eta) = I(eta) / I(inf),
-        I(eta) = int_0^eta exp(-(Pr/2) int_0^t f dt') dt
-
-    which is evaluated here with the trapezoidal rule (no shooting needed).
-
-    Returns theta(eta) and the wall gradient theta'(0), from which
-    Nu_x / sqrt(Re_x) = theta'(0).
-    """
     from scipy.integrate import cumulative_trapezoid
 
     F = cumulative_trapezoid(f, eta, initial=0.0)      # int_0^eta f deta
@@ -116,23 +66,14 @@ def solve_thermal(eta: np.ndarray, f: np.ndarray, Pr: float):
     return theta, dtheta0
 
 
-# --------------------------------------------------------------------------
-# Derived engineering quantities
-# --------------------------------------------------------------------------
-
-
 def boundary_layer_metrics(eta: np.ndarray, y: np.ndarray) -> dict:
-    """Integral thicknesses and skin friction, all in similarity units."""
     f, fp, fpp = y[:, 0], y[:, 1], y[:, 2]
 
-    # delta_99: where f' = 0.99, found by linear interpolation
     idx = np.argmax(fp >= 0.99)
     eta99 = np.interp(0.99, [fp[idx - 1], fp[idx]], [eta[idx - 1], eta[idx]])
 
-    # Displacement thickness: eta_max - f(eta_max)  (exact limit form)
     delta_star = eta[-1] - f[-1]
 
-    # Momentum thickness: int (f' (1 - f')) deta  ->  equals 0.664
     theta_mom = np.trapezoid(fp * (1.0 - fp), eta)
 
     return {
@@ -147,17 +88,12 @@ def boundary_layer_metrics(eta: np.ndarray, y: np.ndarray) -> dict:
 
 def velocity_profile(x: float, U_inf: float, nu: float,
                      eta: np.ndarray, y: np.ndarray):
-    """Map the similarity solution back to physical (y, u, v) at station x."""
     Re_x = U_inf * x / nu
     y_phys = eta * x / np.sqrt(Re_x)
     u = U_inf * y[:, 1]
     v = 0.5 * U_inf / np.sqrt(Re_x) * (eta * y[:, 1] - y[:, 0])
     return y_phys, u, v
 
-
-# --------------------------------------------------------------------------
-# Driver
-# --------------------------------------------------------------------------
 
 def main() -> None:
     import os
@@ -186,7 +122,6 @@ def main() -> None:
         ref = reference[k]
         print(f"{k:<28}{v:>13.6f}{ref:>13.6f}{abs(v-ref)/ref:>13.2e}")
 
-    # Thermal boundary layer / Nusselt number
     print("\nThermal boundary layer (isothermal wall):")
     print(f"{'Pr':>8}{'Nu_x/sqrt(Re_x)':>20}{'0.332 Pr^(1/3)':>18}{'rel.err':>12}")
     print("-" * 58)
@@ -198,7 +133,6 @@ def main() -> None:
         print(f"{Pr:>8.1f}{dtheta0:>20.5f}{corr:>18.5f}"
               f"{abs(dtheta0-corr)/corr:>12.2e}")
 
-    # ---------------- figures ----------------
     figdir = os.path.join(os.path.dirname(__file__), "..", "figures")
     os.makedirs(figdir, exist_ok=True)
 
