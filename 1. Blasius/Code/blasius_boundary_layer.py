@@ -35,7 +35,7 @@ def solve_blasius(eta_max: float = 10.0, n: int = 2001,
 
     def residual(s: float) -> float:
         y = _rk4(_blasius_rhs, eta, np.array([0.0, 0.0, s]))
-        return y[-1, 1] - 1.0          # f'(eta_max) - 1
+        return y[-1, 1] - 1.0          
 
     s = 0.3
     for _ in range(max_iter):
@@ -43,7 +43,7 @@ def solve_blasius(eta_max: float = 10.0, n: int = 2001,
         if abs(r) < tol:
             break
         ds = 1e-8 * max(1.0, abs(s))
-        drds = (residual(s + ds) - r) / ds     # numerical Jacobian
+        drds = (residual(s + ds) - r) / ds     
         s -= r / drds
     else:
         raise RuntimeError("Shooting method failed to converge")
@@ -56,11 +56,11 @@ def solve_thermal(eta: np.ndarray, f: np.ndarray, Pr: float):
 
     from scipy.integrate import cumulative_trapezoid
 
-    F = cumulative_trapezoid(f, eta, initial=0.0)      # int_0^eta f deta
+    F = cumulative_trapezoid(f, eta, initial=0.0)      
     integrand = np.exp(-0.5 * Pr * F)
     I = cumulative_trapezoid(integrand, eta, initial=0.0)
     theta = I / I[-1]
-    dtheta0 = integrand[0] / I[-1]                     # theta'(0)
+    dtheta0 = integrand[0] / I[-1]                     
     return theta, dtheta0
 
 
