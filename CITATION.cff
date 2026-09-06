@@ -10,7 +10,7 @@ authors:
 repository-code: "https://github.com/amiin10/cfd-heat-transfer"
 identifiers:
   - type: doi
-    value: "10.5281/zenodo.22548111"
+    value: "10.5281/zenodo.22549009"
     description: "Archived snapshot of this software on Zenodo"
 abstract: >-
   A collection of finite-difference solvers for classical fluid mechanics and
@@ -32,4 +32,4 @@ keywords:
 license: MIT
 version: 1.0.0
 date-released: "2026-09-06"
-doi: "10.5281/zenodo.22548111"
+doi: "10.5281/zenodo.22549009"
