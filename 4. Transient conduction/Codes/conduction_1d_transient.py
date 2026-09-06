@@ -1,35 +1,7 @@
 """
 Transient one-dimensional conduction in a plane wall with convection.
-=====================================================================
 
-Physical problem (Incropera, Ch. 5): a plane wall of half-thickness L,
-initially at uniform T_i, is suddenly immersed in a fluid at T_inf with
-convection coefficient h.  By symmetry only 0 <= x <= L is solved:
-
-    dT/dt = alpha d2T/dx2
-    dT/dx = 0                      at x = 0   (symmetry plane)
-    -k dT/dx = h (T - T_inf)       at x = L   (convective surface)
-
-Three finite-difference schemes are implemented and compared against the
-exact separation-of-variables solution:
-
-    1. FTCS  (explicit)        - O(dt, dx^2),  stable only for Fo <= 1/2
-    2. BTCS  (implicit)        - O(dt, dx^2),  unconditionally stable
-    3. Crank-Nicolson          - O(dt^2, dx^2), unconditionally stable
-
-Exact solution:
-    theta = (T - T_inf)/(T_i - T_inf) = sum_n C_n exp(-zeta_n^2 Fo)
-                                                cos(zeta_n x/L)
-    with  zeta_n tan(zeta_n) = Bi   and
-          C_n = 4 sin(zeta_n) / (2 zeta_n + sin(2 zeta_n))
-
-The eigenvalues are found with Brent's method bracketed inside each
-branch of the tangent function.
-
-The script also demonstrates the FTCS stability limit by deliberately
-running at Fo = 0.6 and showing the solution blow up.
-
-Author: <your name>
+Author: Seyed Mohammad Amin Hosseini
 """
 
 from __future__ import annotations
@@ -40,17 +12,12 @@ import scipy.sparse.linalg as spla
 from scipy.optimize import brentq
 
 
-# --------------------------------------------------------------------------
-# Exact solution
-# --------------------------------------------------------------------------
-
 def eigenvalues(Bi: float, n_roots: int = 60) -> np.ndarray:
-    """Roots of  zeta tan(zeta) = Bi , one per branch of tan."""
     roots = []
     for n in range(n_roots):
         lo = n * np.pi + 1e-10
         hi = (n + 0.5) * np.pi - 1e-10
-        f = lambda z: z * np.sin(z) - Bi * np.cos(z)   # rearranged, no poles
+        f = lambda z: z * np.sin(z) - Bi * np.cos(z)   
         roots.append(brentq(f, lo, hi, xtol=1e-14, rtol=1e-15))
     return np.array(roots)
 
@@ -66,19 +33,7 @@ def exact_theta(xi: np.ndarray, Fo: float, Bi: float,
         np.cos(zeta[None, :] * xi[:, None])
     return terms.sum(axis=1)
 
-
-# --------------------------------------------------------------------------
-# Numerical schemes
-# --------------------------------------------------------------------------
-
 def _operator(nx: int, dx: float, Bi_dx: float):
-    """
-    Build the discrete Laplacian A (units 1/dx^2) for dtheta/dt = alpha A theta
-    including the symmetry BC at node 0 and the convective BC at node nx-1
-    via the ghost-node (energy balance) formulation.
-
-    Bi_dx = h dx / k  is the cell Biot number at the surface node.
-    """
     main = np.full(nx, -2.0)
     lower = np.ones(nx - 1)
     upper = np.ones(nx - 1)
@@ -96,16 +51,10 @@ def _operator(nx: int, dx: float, Bi_dx: float):
 
 def solve_transient(scheme: str, nx: int, Fo_target: float, Bi: float,
                     dFo: float):
-    """
-    March theta from 1.0 to Fourier number Fo_target.
 
-    Working in dimensionless form: xi in [0,1], time = Fo, alpha = 1.
-    dFo is the time step in Fourier-number units; the mesh Fourier number
-    is  Fo_mesh = dFo / dxi^2  (the FTCS stability parameter).
-    """
     xi = np.linspace(0.0, 1.0, nx)
     dxi = xi[1] - xi[0]
-    A = _operator(nx, dxi, Bi * dxi)          # Bi_dx = Bi * dxi  (since Bi=hL/k)
+    A = _operator(nx, dxi, Bi * dxi)          
     I = sp.identity(nx, format="csr")
 
     theta = np.ones(nx)
@@ -130,18 +79,13 @@ def solve_transient(scheme: str, nx: int, Fo_target: float, Bi: float,
 
     return xi, theta
 
-
-# --------------------------------------------------------------------------
-# Driver
-# --------------------------------------------------------------------------
-
 def main() -> None:
     import os
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    Bi = 1.0            # h L / k
+    Bi = 1.0            
     Fo_end = 0.2
     nx = 41
     dxi = 1.0 / (nx - 1)
@@ -157,7 +101,6 @@ def main() -> None:
     xi_e = np.linspace(0, 1, nx)
     theta_e = exact_theta(xi_e, Fo_end, Bi, zeta)
 
-    # ---- accuracy comparison at a mesh Fourier number that is stable ----
     Fo_mesh = 0.4
     dFo = Fo_mesh * dxi ** 2
     print(f"{'scheme':<18}{'Fo_mesh':>10}{'max error':>14}{'RMS error':>14}")
@@ -170,10 +113,7 @@ def main() -> None:
         print(f"{scheme:<18}{Fo_mesh:>10.2f}{err.max():>14.3e}"
               f"{np.sqrt(np.mean(err**2)):>14.3e}")
 
-    # ---- temporal order of accuracy of Crank-Nicolson vs implicit ----
-    # The error is measured against a reference computed on the SAME mesh with
-    # a very small time step.  This cancels the spatial discretisation error
-    # and isolates the temporal error, which is what we want to rate.
+
     print("\nTemporal order of accuracy (same mesh, error vs. dt->0 reference):")
     print(f"{'dFo':>12}{'BTCS err':>14}{'order':>8}{'CN err':>16}{'order':>8}")
     print("-" * 60)
@@ -192,7 +132,6 @@ def main() -> None:
         print(line)
     print("(expected: BTCS -> 1st order in dt,  Crank-Nicolson -> 2nd order)")
 
-    # ---- explicit-scheme stability demonstration ----
     print("\nFTCS stability check (theory: unstable for Fo_mesh > 0.5):")
     for Fo_mesh_test in (0.25, 0.50, 0.60):
         _, th = solve_transient("explicit", 21, 0.05, Bi,
@@ -201,7 +140,6 @@ def main() -> None:
         status = "STABLE" if peak < 5 else "DIVERGED"
         print(f"  Fo_mesh = {Fo_mesh_test:.2f} -> max|theta| = {peak:.3e}  {status}")
 
-    # ---------------- figures ----------------
     figdir = os.path.join(os.path.dirname(__file__), "..", "figures")
     os.makedirs(figdir, exist_ok=True)
 
