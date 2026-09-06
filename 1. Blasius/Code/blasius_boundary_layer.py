@@ -24,7 +24,7 @@ Reference values (Schlichting, "Boundary-Layer Theory", 9th ed.):
     theta_mom*sqrt(Rex)/x  = 0.6641
     cf * sqrt(Rex)         = 0.664
 
-Author: <your name>
+Author: Seyed Mohammad Amin Hosseini
 """
 
 from __future__ import annotations
