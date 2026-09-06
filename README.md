@@ -11,7 +11,7 @@ theoretical convergence rate — instead of being judged by eye.*
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-pep8-000000.svg)]()
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22548111.svg)](https://doi.org/10.5281/zenodo.22548111)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22548111.svg)](https://doi.org/10.5281/zenodo.22549009)
 
 <br/>
 
@@ -303,8 +303,8 @@ button reads from [`CITATION.cff`](CITATION.cff).
   year         = {2026},
   publisher    = {Zenodo},
   version      = {1.0.0},
-  doi          = {10.5281/zenodo.22548111},
-  url          = {https://doi.org/10.5281/zenodo.22548111}
+  doi          = {10.5281/zenodo.22549009},
+  url          = {https://doi.org/10.5281/zenodo.22549009}
 }
 ```
 
