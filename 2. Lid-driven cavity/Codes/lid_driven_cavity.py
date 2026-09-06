@@ -1,34 +1,7 @@
 """
 Lid-driven cavity flow - incompressible Navier-Stokes.
-======================================================
 
-Solves the 2D incompressible Navier-Stokes equations in the
-vorticity-streamfunction formulation on a unit square cavity whose top
-lid slides at constant velocity U = 1:
-
-    dw/dt + u dw/dx + v dw/dy = (1/Re) (d2w/dx2 + d2w/dy2)
-    laplacian(psi) = -w
-    u =  dpsi/dy ,   v = -dpsi/dx
-
-Numerics
---------
-* Second-order central differences for convection and diffusion.
-* Wall vorticity from Thom's first-order boundary condition.
-* The streamfunction Poisson equation is solved *exactly* at every time
-  step with a fast discrete sine transform (DST-I).  This diagonalises
-  the 5-point Laplacian for homogeneous Dirichlet data, so each solve is
-  O(N^2 log N) instead of an iterative sweep - roughly two orders of
-  magnitude faster than SOR and free of iteration error.
-* Explicit Euler pseudo-time marching to steady state, with the time step
-  set by the smaller of the convective (CFL) and diffusive limits.
-
-Validation
-----------
-Centreline velocity profiles are compared against the standard benchmark
-of Ghia, Ghia & Shin, J. Comput. Phys. 48 (1982) 387-411, for Re = 100
-and Re = 400.
-
-Author: <your name>
+Author: Seyed Mohammad Amin Hosseini
 """
 
 from __future__ import annotations
@@ -36,10 +9,6 @@ from __future__ import annotations
 import numpy as np
 from scipy.fft import dstn, idstn
 
-
-# --------------------------------------------------------------------------
-# Ghia, Ghia & Shin (1982) benchmark data
-# --------------------------------------------------------------------------
 
 GHIA_Y = np.array([0.0000, 0.0547, 0.0625, 0.0703, 0.1016, 0.1719, 0.2813,
                    0.4531, 0.5000, 0.6172, 0.7344, 0.8516, 0.9531, 0.9609,
@@ -57,13 +26,6 @@ GHIA_X = np.array([0.0000, 0.0625, 0.0703, 0.0781, 0.0938, 0.1563, 0.2266,
                    0.2344, 0.5000, 0.8047, 0.8594, 0.9063, 0.9453, 0.9531,
                    0.9609, 0.9688, 1.0000])
 
-# --- Known erratum in the original paper -----------------------------------
-# Table II of Ghia et al. lists v = -0.23827 at x = 0.9063 for Re = 400.
-# That value breaks the monotonicity of the profile between its neighbours
-# (-0.44993 at x = 0.8594 and -0.22847 at x = 0.9453) and is widely regarded
-# as a typesetting error in the 1982 table; independent published solutions
-# obtain roughly -0.38 there, as does this solver.  The point is retained in
-# the data for completeness but excluded from the error norms below.
 GHIA_ERRATA = {400: [11]}          # index into GHIA_X / GHIA_V
 GHIA_V = {
     100: np.array([0.00000, 0.09233, 0.10091, 0.10890, 0.12317, 0.16077,
@@ -75,19 +37,7 @@ GHIA_V = {
 }
 
 
-# --------------------------------------------------------------------------
-# Fast Poisson solver (DST-I diagonalisation)
-# --------------------------------------------------------------------------
-
 class PoissonDST:
-    """
-    Direct solver for  laplacian(psi) = f  on a uniform grid with
-    psi = 0 on all four boundaries.
-
-    The discrete 5-point Laplacian has eigenvectors sin(i k pi / N), so a
-    type-I DST turns the linear system into a pointwise division.
-    """
-
     def __init__(self, n: int, h: float):
         self.h = h
         k = np.arange(1, n + 1)
@@ -98,19 +48,9 @@ class PoissonDST:
         fhat = dstn(f, type=1)
         return idstn(fhat / self.denom, type=1)
 
-
-# --------------------------------------------------------------------------
-# Solver
-# --------------------------------------------------------------------------
-
 def solve_cavity(Re: float = 100.0, N: int = 128, tol: float = 1e-7,
                  max_steps: int = 400_000, verbose: bool = True):
-    """
-    March to steady state on an (N+1) x (N+1) node grid.
 
-    Arrays are indexed [i, j] with i -> x and j -> y.
-    Returns (x, y, psi, omega, u, v, info).
-    """
     h = 1.0 / N
     x = np.linspace(0.0, 1.0, N + 1)
     y = np.linspace(0.0, 1.0, N + 1)
@@ -120,26 +60,21 @@ def solve_cavity(Re: float = 100.0, N: int = 128, tol: float = 1e-7,
     poisson = PoissonDST(N - 1, h)
 
     U_lid = 1.0
-    # Time step: diffusive limit h^2 Re/4, convective limit h/U, with margin
     dt = 0.25 * min(0.25 * h * h * Re, h / U_lid)
 
     info = {"steps": 0, "residual": np.nan, "converged": False}
 
     for step in range(1, max_steps + 1):
-        # --- 1. streamfunction from vorticity: laplacian(psi) = -w ---
         psi[1:-1, 1:-1] = poisson.solve(-w[1:-1, 1:-1])
 
-        # --- 2. Thom wall vorticity (uses updated psi) ---
-        w[:, 0] = -2.0 * psi[:, 1] / h ** 2                       # bottom
-        w[:, -1] = -2.0 * psi[:, -2] / h ** 2 - 2.0 * U_lid / h   # moving lid
-        w[0, :] = -2.0 * psi[1, :] / h ** 2                       # left
-        w[-1, :] = -2.0 * psi[-2, :] / h ** 2                     # right
+        w[:, 0] = -2.0 * psi[:, 1] / h ** 2                       
+        w[:, -1] = -2.0 * psi[:, -2] / h ** 2 - 2.0 * U_lid / h   
+        w[0, :] = -2.0 * psi[1, :] / h ** 2                       
+        w[-1, :] = -2.0 * psi[-2, :] / h ** 2                     
 
-        # --- 3. velocities at interior nodes ---
         u = (psi[1:-1, 2:] - psi[1:-1, :-2]) / (2.0 * h)
         v = -(psi[2:, 1:-1] - psi[:-2, 1:-1]) / (2.0 * h)
 
-        # --- 4. vorticity transport, explicit Euler ---
         dwdx = (w[2:, 1:-1] - w[:-2, 1:-1]) / (2.0 * h)
         dwdy = (w[1:-1, 2:] - w[1:-1, :-2]) / (2.0 * h)
         lap = (w[2:, 1:-1] + w[:-2, 1:-1] + w[1:-1, 2:] + w[1:-1, :-2]
@@ -175,10 +110,9 @@ def solve_cavity(Re: float = 100.0, N: int = 128, tol: float = 1e-7,
 
 
 def validate(x, y, u, v, Re):
-    """Interpolate centreline profiles onto the Ghia stations and compare."""
     mid = len(x) // 2
-    u_center = np.interp(GHIA_Y, y, u[mid, :])       # u along vertical centreline
-    v_center = np.interp(GHIA_X, x, v[:, mid])       # v along horizontal centreline
+    u_center = np.interp(GHIA_Y, y, u[mid, :])       
+    v_center = np.interp(GHIA_X, x, v[:, mid])      
     eu = np.abs(u_center - GHIA_U[Re])
     ev = np.abs(v_center - GHIA_V[Re])
 
@@ -187,10 +121,6 @@ def validate(x, y, u, v, Re):
         mask[k] = False
     return u_center, v_center, eu, ev[mask]
 
-
-# --------------------------------------------------------------------------
-# Driver
-# --------------------------------------------------------------------------
 
 def main() -> None:
     import os
@@ -228,7 +158,6 @@ def main() -> None:
     print("  Re = 100 -> psi_min = -0.1034 at (0.6172, 0.7344)")
     print("  Re = 400 -> psi_min = -0.1139 at (0.5547, 0.6055)")
 
-    # ---------------- figures ----------------
     figdir = os.path.join(os.path.dirname(__file__), "..", "figures")
     os.makedirs(figdir, exist_ok=True)
 
